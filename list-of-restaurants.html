@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nearby Restaurants</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #restaurant-list {
+            text-align: center;
+            padding: 0;
+            list-style-type: none;
+        }
+        .restaurant-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        .restaurant-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+        .restaurant-address {
+            margin-top: 5px;
+            color: #666;
+        }
+        .restaurant-photo {
+            max-width: 100px;
+            max-height: 100px;
+            margin-right: 10px;
+            float: left;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nearby Restaurants</h1>
+    <div id="map"></div>
+    <ul id="restaurant-list"></ul>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAwjNkVZ0mr30RDn-X84NCq7QbfHvUCxMI&libraries=places&callback=initMap" async defer></script>
+    <script>
+        var map;
+        function initMap() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    map = new google.maps.Map(document.getElementById('map'), {
+                        center: userLocation,
+                        zoom: 15
+                    });
+                    var service = new google.maps.places.PlacesService(map);
+                    var request = {
+                        location: userLocation,
+                        radius: '500',
+                        type: ['restaurant']
+                    };
+                    service.nearbySearch(request, callback);
+                    function callback(results, status) {
+                        if (status === google.maps.places.PlacesServiceStatus.OK) {
+                            var restaurantList = document.getElementById('restaurant-list');
+                            for (var i = 0; i < results.length; i++) {
+                                createMarker(results[i]);
+                                var listItem = document.createElement('li');
+                                listItem.className = 'restaurant-item';
+                                listItem.setAttribute('data-place-id', results[i].place_id);
+                                var restaurantName = document.createElement('div');
+                                restaurantName.className = 'restaurant-name';
+                                restaurantName.textContent = results[i].name;
+                                var restaurantAddress = document.createElement('div');
+                                restaurantAddress.className = 'restaurant-address';
+                                restaurantAddress.textContent = results[i].vicinity;
+                                var restaurantPhoto = document.createElement('img');
+                                restaurantPhoto.className = 'restaurant-photo';
+                                restaurantPhoto.src = results[i].photos ? results[i].photos[0].getUrl({maxWidth: 100, maxHeight: 100}) : 'no-photo.jpg';
+                                listItem.appendChild(restaurantPhoto);
+                                listItem.appendChild(restaurantName);
+                                listItem.appendChild(restaurantAddress);
+                                restaurantList.appendChild(listItem);
+                            }
+                            var restaurantItems = document.getElementsByClassName('restaurant-item');
+                            for (var j = 0; j < restaurantItems.length; j++) {
+                                restaurantItems[j].addEventListener('click', function() {
+                                    var placeId = this.getAttribute('data-place-id');
+                                    var request = { placeId: placeId };
+                                    service.getDetails(request, function(place, status) {
+                                        if (status === google.maps.places.PlacesServiceStatus.OK) {
+                                            var infowindow = new google.maps.InfoWindow({
+                                                content: '<div><strong>' + place.name + '</strong><br>' +
+                                                    'Address: ' + place.formatted_address + '<br>' +
+                                                    '</div>'
+                                            });
+                                            infowindow.open(map, marker);
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    }
+                    function createMarker(place) {
+                        var marker = new google.maps.Marker({
+                            map: map,
+                            position: place.geometry.location,
+                            title: place.name
+                        });
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
